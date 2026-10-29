@@ -1,0 +1,2 @@
+
+Students come into BIOE 44 with a wide variety of statistics backgrounds. While we can't expect to teach them all of statistics in BIOE 44, we'd like to introduce the idea of thinking quantitatively about biological data and choosing statistical tests. I think students struggle to grasp how their assumptions impact their results, so this static page is a simulator where students can see the impacts of tuning parameters in data samples and see side-by-side the results of different statistical tests with those samples.  
