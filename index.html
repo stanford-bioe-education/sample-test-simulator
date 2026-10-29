@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sample and statistical test simulator</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+
+    --bg: #eef1ea;
+    --panel: #ffffff;
+    --panel-2: #f7f8f3;
+    --ink: #1c2420;
+    --muted: #5e6b61;
+    --grid: #d4d9cc;
+    --add: #3b6e8f;
+    --mult: #b23a6b;
+    --well: #1f8a70;
+    --warn: #c77d16;
+    --sans: 'IBM Plex Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1320; --panel: #101b2c; --panel-2: #0d1726;
+      --ink: #e7edf3; --muted: #8aa0b8; --grid: #1e2d42;
+      --add: #7fb3d9; --mult: #f472b6; --well: #34d399; --warn: #fbbf24;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1320; --panel: #101b2c; --panel-2: #0d1726;
+    --ink: #e7edf3; --muted: #8aa0b8; --grid: #1e2d42;
+    --add: #7fb3d9; --mult: #f472b6; --well: #34d399; --warn: #fbbf24;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    padding: 28px 20px 60px;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  header { margin-bottom: 26px; }
+  header .kicker {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--mult);
+    letter-spacing: 0.02em;
+  }
+  h1 { font-size: clamp(24px, 4vw, 32px); line-height: 1.15; margin: 6px 0 10px; font-weight: 700; }
+  header p { color: var(--muted); font-size: 15px; line-height: 1.55; max-width: 66ch; }
+
+  section {
+    background: var(--panel);
+    border: 1px solid var(--grid);
+    border-radius: 10px;
+    padding: 20px 22px 24px;
+    margin-bottom: 20px;
+  }
+  section h2 { font-size: 16px; margin: 0 0 4px; font-weight: 600; }
+  section .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; line-height: 1.5; max-width: 70ch; }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px 22px;
+    margin-bottom: 8px;
+  }
+  .control label {
+    display: flex; justify-content: space-between;
+    font-size: 12.5px; color: var(--muted); margin-bottom: 6px;
+  }
+  .control label span.val { font-family: var(--mono); color: var(--ink); font-weight: 600; }
+  input[type="range"] { width: 100%; accent-color: var(--mult); }
+  select {
+    width: 100%; font-family: var(--sans); font-size: 13.5px;
+    padding: 7px 9px; border-radius: 7px; border: 1px solid var(--grid);
+    background: var(--panel-2); color: var(--ink);
+  }
+
+  .param-panels { margin-top: 4px; }
+  .param-group { display: none; }
+  .param-group.active { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 22px; }
+
+  .toggle-btns { display: flex; gap: 6px; }
+  .toggle-btns button {
+    font-family: var(--mono); font-size: 12px; background: transparent;
+    border: 1px solid var(--grid); color: var(--muted);
+    padding: 7px 12px; border-radius: 6px; cursor: pointer; flex: 1;
+  }
+  .toggle-btns button.active { background: var(--mult); border-color: var(--mult); color: white; }
+
+  .go-row { margin: 18px 0 4px; }
+  .go-btn {
+    font-family: var(--mono); font-size: 14px; font-weight: 600;
+    background: var(--mult); border: none; color: white;
+    padding: 11px 24px; border-radius: 8px; cursor: pointer;
+  }
+  .go-btn:hover { filter: brightness(1.08); }
+
+  .chart-box {
+    background: var(--panel-2);
+    border: 1px solid var(--grid);
+    border-radius: 8px;
+    padding: 14px 14px 16px;
+    margin-top: 18px;
+  }
+  .chart-box h3 { font-size: 13.5px; margin: 0 0 8px; font-weight: 600; }
+  canvas#chartDots {
+    width: 100%; max-width: 440px; height: 340px; display: block;
+    margin: 0 auto; background: #ffffff; border-radius: 4px;
+  }
+  .stats {
+    display: flex; gap: 18px; margin-top: 10px;
+    font-family: var(--mono); font-size: 12px; color: var(--muted); flex-wrap: wrap;
+  }
+  .stats b { color: var(--ink); font-weight: 600; }
+
+  .method-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px;
+  }
+  .method-grid.three-col { grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); }
+  @media (max-width: 760px) { .method-grid { grid-template-columns: 1fr; } }
+  .method-card.disabled { opacity: 0.42; filter: grayscale(55%); }
+  .posthoc-note { font-size: 11px; color: var(--muted); margin-top: 6px; font-style: italic; }
+  .method-card {
+    background: var(--panel-2); border: 1px solid var(--grid);
+    border-top-width: 3px; border-radius: 8px; padding: 12px 14px;
+  }
+  .method-card h4 { margin: 0 0 2px; font-size: 13px; font-weight: 600; }
+  .method-card .assump {
+    font-family: var(--mono); font-size: 10.5px; color: var(--muted);
+    margin: 0 0 8px; line-height: 1.4;
+  }
+  .scale-toggle-row { display: flex; justify-content: center; margin-bottom: 10px; }
+  .scale-toggle-row .toggle-btns { max-width: 220px; }
+  .method-card .row {
+    display: flex; justify-content: space-between; font-size: 12.5px;
+    color: var(--muted); padding: 3px 0; font-family: var(--mono);
+  }
+  .method-card .row b { color: var(--ink); font-weight: 600; }
+
+  .caption { font-size: 13px; color: var(--muted); line-height: 1.55; margin-top: 16px; max-width: 74ch; }
+  .caption strong { color: var(--ink); }
+  .try-it {
+    margin-top: 14px; padding: 10px 14px; background: var(--bg);
+    border-left: 3px solid var(--warn); border-radius: 0 6px 6px 0;
+    font-size: 13px; color: var(--ink); line-height: 1.5;
+  }
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sample and statistical test simulator</h1>
+  <p>This is a simulation to demonstrate the impacts of sample size and the assumptions you make about your data.
+  Edit the parameters below and then click Generate samples to randomly generate samples of your chosen size from
+  the true population distribution and effect size. Observe how the results of different statistical tests
+  compare and contrast. Clicking Generate samples repeatedly will generate new random samples.</p>
+</header>
+
+<section>
+  <h2>Setup</h2>
+  <p class="sub">Group A always uses the baseline parameters below. Group B (and C, if selected) use the same
+  distribution family, shifted by the effect size you choose — measured in units of Group A's own spread, so it
+  means roughly the same thing across distributions.</p>
+
+  <div class="controls">
+    <div class="control">
+      <label>True population distribution</label>
+      <select id="distSelect">
+        <option value="normal">Normal</option>
+        <option value="lognormal">Log-normal</option>
+        <option value="poisson">Poisson</option>
+        <option value="binomial">Binomial</option>
+      </select>
+    </div>
+    <div class="control">
+      <label>Number of conditions</label>
+      <div class="toggle-btns">
+        <button id="btn2cond" class="active">2 conditions</button>
+        <button id="btn3cond">3 conditions</button>
+      </div>
+    </div>
+    <div class="control">
+      <label>Samples per condition (n) <span class="val" id="valN">15</span></label>
+      <input type="range" id="sliderSampleN" min="3" max="100" step="1" value="15">
+    </div>
+    <div class="control">
+      <label>Effect size, B vs A <span class="val" id="valEffect">0.0 SD</span></label>
+      <input type="range" id="sliderEffect" min="-20" max="20" step="1" value="0">
+    </div>
+    <div class="control" id="effectCControl" style="display:none;">
+      <label>Effect size, C vs A <span class="val" id="valEffectC">0.0 SD</span></label>
+      <input type="range" id="sliderEffectC" min="-20" max="20" step="1" value="0">
+    </div>
+  </div>
+
+  <div class="param-panels">
+    <div class="param-group" data-dist="normal">
+      <div class="control">
+        <label>Baseline mean, μ <span class="val" id="valNormalMean">10</span></label>
+        <input type="range" id="normalMean" min="-20" max="20" step="1" value="10">
+      </div>
+      <div class="control">
+        <label>Baseline SD, σ <span class="val" id="valNormalSD">3</span></label>
+        <input type="range" id="normalSD" min="1" max="20" step="1" value="3">
+      </div>
+    </div>
+    <div class="param-group" data-dist="lognormal">
+      <div class="control">
+        <label>Baseline meanlog, μ <span class="val" id="valLogMu">1.5</span></label>
+        <input type="range" id="logMu" min="-20" max="40" step="1" value="15">
+      </div>
+      <div class="control">
+        <label>Baseline sdlog, σ <span class="val" id="valLogSigma">0.40</span></label>
+        <input type="range" id="logSigma" min="5" max="150" step="5" value="40">
+      </div>
+    </div>
+    <div class="param-group" data-dist="poisson">
+      <div class="control">
+        <label>Baseline rate, λ <span class="val" id="valLambda">8</span></label>
+        <input type="range" id="lambdaSlider" min="1" max="50" step="1" value="8">
+      </div>
+    </div>
+    <div class="param-group" data-dist="binomial">
+      <div class="control">
+        <label>Trials, n <span class="val" id="valBinN">20</span></label>
+        <input type="range" id="binN" min="2" max="100" step="1" value="20">
+      </div>
+      <div class="control">
+        <label>Probability, p <span class="val" id="valBinP">0.30</span></label>
+        <input type="range" id="binP" min="1" max="99" step="1" value="30">
+      </div>
+    </div>
+  </div>
+
+  <div class="controls" style="margin-top:14px;">
+    <div class="control">
+      <label>Significance threshold, α <span class="val" id="valAlpha">0.05</span></label>
+      <input type="range" id="sliderAlpha" min="1" max="20" step="1" value="5">
+    </div>
+  </div>
+
+  <div class="go-row">
+    <button class="go-btn" id="btnGo">Generate samples</button>
+  </div>
+
+  <div class="scale-toggle-row">
+    <div class="toggle-btns">
+      <button id="btnLinearScale" class="active">Linear</button>
+      <button id="btnLogScale">Log</button>
+    </div>
+  </div>
+
+  <div class="chart-box">
+    <h3>Randomly generated samples</h3>
+    <canvas id="chartDots"></canvas>
+    <div class="stats" id="groupStatsRow"></div>
+  </div>
+
+  <div class="method-grid" id="twoGroupTests">
+    <div class="method-card" style="border-top-color:var(--add)">
+      <h4>Student's t-test</h4>
+      <div class="assump">(<span id="stuAssumpNorm">normal</span> &middot; <span id="stuAssumpVar">equal variance</span>)</div>
+      <div class="row"><span>statistic</span><b id="stuStat">—</b></div>
+      <div class="row"><span>df</span><b id="stuDF">—</b></div>
+      <div class="row"><span>p-value</span><b id="stuP">—</b></div>
+      <div class="row"><span>result</span><b id="stuResult">—</b></div>
+    </div>
+    <div class="method-card" style="border-top-color:var(--mult)">
+      <h4>Welch's t-test</h4>
+      <div class="assump">(<span id="welAssumpNorm">normal</span> &middot; <span id="welAssumpVar">unequal variance OK</span>)</div>
+      <div class="row"><span>statistic</span><b id="welStat">—</b></div>
+      <div class="row"><span>df</span><b id="welDF">—</b></div>
+      <div class="row"><span>p-value</span><b id="welP">—</b></div>
+      <div class="row"><span>result</span><b id="welResult">—</b></div>
+    </div>
+    <div class="method-card" style="border-top-color:var(--well)">
+      <h4>Mann-Whitney U</h4>
+      <div class="assump">(<span id="mwAssumpNorm">no normality needed</span> &middot; <span id="mwAssumpVar">no equal variance needed</span>)</div>
+      <div class="row"><span>statistic (U)</span><b id="mwStat">—</b></div>
+      <div class="row"><span>z (normal approx.)</span><b id="mwZ">—</b></div>
+      <div class="row"><span>p-value</span><b id="mwP">—</b></div>
+      <div class="row"><span>result</span><b id="mwResult">—</b></div>
+    </div>
+  </div>
+
+  <div class="method-grid three-col" id="threeGroupTests" style="display:none">
+    <div class="method-card" style="border-top-color:var(--add)">
+      <h4>One-way ANOVA</h4>
+      <div class="assump">(<span id="anovaAssumpNorm">normal</span> &middot; <span id="anovaAssumpVar">equal variance</span>)</div>
+      <div class="row"><span>F statistic</span><b id="anovaStat">—</b></div>
+      <div class="row"><span>df</span><b id="anovaDF">—</b></div>
+      <div class="row"><span>p-value</span><b id="anovaP">—</b></div>
+      <div class="row"><span>result</span><b id="anovaResult">—</b></div>
+    </div>
+    <div class="method-card" id="tukeyPostHocCard" style="border-top-color:var(--add)">
+      <h4>Tukey HSD</h4>
+      <div class="assump">(<span id="tukeyAssumpNorm">normal</span> &middot; <span id="tukeyAssumpVar">equal variance</span>)</div>
+      <div class="row"><span>A vs B</span><b id="tukeyPH_AB">—</b></div>
+      <div class="row"><span>A vs C</span><b id="tukeyPH_AC">—</b></div>
+      <div class="row"><span>B vs C</span><b id="tukeyPH_BC">—</b></div>
+      <div class="posthoc-note" id="tukeyPostHocNote" style="display:none;">ANOVA not significant — post-hoc skipped</div>
+    </div>
+    <div class="method-card" id="ghPostHocCard" style="border-top-color:var(--add)">
+      <h4>Games-Howell</h4>
+      <div class="assump">(<span id="ghAssumpNorm">normal</span> &middot; <span id="ghAssumpVar">unequal variance OK</span>)</div>
+      <div class="row"><span>A vs B</span><b id="ghPH_AB">—</b></div>
+      <div class="row"><span>A vs C</span><b id="ghPH_AC">—</b></div>
+      <div class="row"><span>B vs C</span><b id="ghPH_BC">—</b></div>
+      <div class="posthoc-note" id="ghPostHocNote" style="display:none;">ANOVA not significant — post-hoc skipped</div>
+    </div>
+    <div class="method-card" style="border-top-color:var(--well)">
+      <h4>Kruskal-Wallis</h4>
+      <div class="assump">(<span id="kwAssumpNorm">no normality needed</span> &middot; <span id="kwAssumpVar">no equal variance needed</span>)</div>
+      <div class="row"><span>H statistic</span><b id="kwStat">—</b></div>
+      <div class="row"><span>df</span><b id="kwDF">—</b></div>
+      <div class="row"><span>p-value</span><b id="kwP">—</b></div>
+      <div class="row"><span>result</span><b id="kwResult">—</b></div>
+    </div>
+    <div class="method-card" id="kwPostHocCard" style="border-top-color:var(--well)">
+      <h4>Dunn's test</h4>
+      <div class="assump">(<span id="kwPHAssumpNorm">no normality needed</span> &middot; <span id="kwPHAssumpVar">no equal variance needed</span>)</div>
+      <div class="row"><span>A vs B</span><b id="kwPH_AB">—</b></div>
+      <div class="row"><span>A vs C</span><b id="kwPH_AC">—</b></div>
+      <div class="row"><span>B vs C</span><b id="kwPH_BC">—</b></div>
+      <div class="posthoc-note" id="kwPostHocNote" style="display:none;">Kruskal-Wallis not significant — post-hoc skipped</div>
+    </div>
+  </div>
+
+</section>
+
+<script>
+(function() {
+  // ---------- shared utilities ----------
+  function randNormal() {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  function mean(arr) {
+    let s = 0;
+    for (let i = 0; i < arr.length; i++) s += arr[i];
+    return s / arr.length;
+  }
+  function sampleVariance(arr, m) {
+    if (arr.length < 2) return 0;
+    let s = 0;
+    for (let i = 0; i < arr.length; i++) s += (arr[i] - m) * (arr[i] - m);
+    return s / (arr.length - 1);
+  }
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+  function safeFixed(x, d) {
+    if (!isFinite(x)) return x > 0 ? '∞' : (x < 0 ? '-∞' : '—');
+    return x.toFixed(d);
+  }
+  function fmtP(p) {
+    if (!isFinite(p)) return '—';
+    if (p <= 0) return '<0.0001';
+    if (p < 0.0001) return p.toExponential(2);
+    return p.toFixed(4);
+  }
+
+  // ---------- special functions (gamma / incomplete beta / incomplete gamma) ----------
+  function gammaln(x) {
+    const g = 7;
+    const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+      771.32342877765313, -176.61502916214059, 12.507343278686905,
+      -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - gammaln(1 - x);
+    x -= 1;
+    let a = c[0];
+    const t = x + g + 0.5;
+    for (let i = 1; i < g + 2; i++) a += c[i] / (x + i);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+
+  function incompleteGammaP(s, x) {
+    if (x <= 0 || s <= 0) return 0;
+    if (x < s + 1) {
+      let sum = 1 / s, term = 1 / s, n = 1;
+      for (let i = 0; i < 300; i++) {
+        term *= x / (s + n);
+        sum += term;
+        n++;
+        if (Math.abs(term) < Math.abs(sum) * 1e-13) break;
+      }
+      return sum * Math.exp(-x + s * Math.log(x) - gammaln(s));
+    } else {
+      let b = x + 1 - s, c = 1e308, d = 1 / b, h = d;
+      for (let i = 1; i < 300; i++) {
+        const an = -i * (i - s);
+        b += 2;
+        d = an * d + b; if (Math.abs(d) < 1e-300) d = 1e-300;
+        c = b + an / c; if (Math.abs(c) < 1e-300) c = 1e-300;
+        d = 1 / d;
+        const del = d * c;
+        h *= del;
+        if (Math.abs(del - 1) < 1e-13) break;
+      }
+      const Q = Math.exp(-x + s * Math.log(x) - gammaln(s)) * h;
+      return 1 - Q;
+    }
+  }
+  function chisqUpperP(x, df) {
+    if (x <= 0) return 1;
+    return Math.max(0, 1 - incompleteGammaP(df / 2, x / 2));
+  }
+
+  function betacf(x, a, b) {
+    const MAXIT = 200, EPS = 3e-12, FPMIN = 1e-300;
+    const qab = a + b, qap = a + 1, qam = a - 1;
+    let c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < FPMIN) d = FPMIN;
+    d = 1 / d;
+    let h = d;
+    for (let m = 1; m <= MAXIT; m++) {
+      const m2 = 2 * m;
+      let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+      c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+      d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+      c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+      d = 1 / d;
+      const del = d * c; h *= del;
+      if (Math.abs(del - 1) < EPS) break;
+    }
+    return h;
+  }
+  function betainc(x, a, b) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    const bt = Math.exp(gammaln(a + b) - gammaln(a) - gammaln(b) + a * Math.log(x) + b * Math.log(1 - x));
+    if (x < (a + 1) / (a + b + 2)) return bt * betacf(x, a, b) / a;
+    return 1 - bt * betacf(1 - x, b, a) / b;
+  }
+  function tTestPValue(tAbs, df) {
+    const x = df / (df + tAbs * tAbs);
+    return betainc(x, df / 2, 0.5);
+  }
+  function fTestPValue(F, df1, df2) {
+    if (F <= 0) return 1;
+    const x = df2 / (df2 + df1 * F);
+    return betainc(x, df2 / 2, df1 / 2);
+  }
+  function erf(x) {
+    const sign = x < 0 ? -1 : 1; x = Math.abs(x);
+    const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741,
+          a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+    const t = 1 / (1 + p * x);
+    const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+    return sign * y;
+  }
+  function normalCDF(z) { return 0.5 * (1 + erf(z / Math.SQRT2)); }
+
+  // ---------- random samplers ----------
+  function poissonSample(lambda) {
+    if (lambda <= 0) return 0;
+    const L = Math.exp(-lambda);
+    let k = 0, p = 1;
+    do { k++; p *= Math.random(); } while (p > L);
+    return k - 1;
+  }
+  function binomialSample(nTrials, p) {
+    let count = 0;
+    for (let i = 0; i < nTrials; i++) if (Math.random() < p) count++;
+    return count;
+  }
+
+  // ---------- test statistics ----------
+  function studentT(x, y) {
+    const n1 = x.length, n2 = y.length;
+    const m1 = mean(x), m2 = mean(y);
+    const v1 = sampleVariance(x, m1), v2 = sampleVariance(y, m2);
+    const sp2 = ((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2);
+    const se = Math.sqrt(sp2 * (1 / n1 + 1 / n2));
+    const t = (m1 - m2) / se;
+    const df = n1 + n2 - 2;
+    return { t, df, p: tTestPValue(Math.abs(t), df) };
+  }
+  function welchT(x, y) {
+    const n1 = x.length, n2 = y.length;
+    const m1 = mean(x), m2 = mean(y);
+    const v1 = sampleVariance(x, m1), v2 = sampleVariance(y, m2);
+    const se = Math.sqrt(v1 / n1 + v2 / n2);
+    const t = (m1 - m2) / se;
+    const df = Math.pow(v1 / n1 + v2 / n2, 2) /
+      (Math.pow(v1 / n1, 2) / (n1 - 1) + Math.pow(v2 / n2, 2) / (n2 - 1));
+    return { t, df, p: tTestPValue(Math.abs(t), df) };
+  }
+  function rankWithTies(values) {
+    const N = values.length;
+    const order = Array.from({ length: N }, (_, i) => i);
+    order.sort((a, b) => values[a] - values[b]);
+    const ranks = new Array(N);
+    let i = 0;
+    while (i < N) {
+      let j = i;
+      while (j + 1 < N && values[order[j + 1]] === values[order[i]]) j++;
+      const avgRank = (i + 1 + j + 1) / 2;
+      for (let k = i; k <= j; k++) ranks[order[k]] = avgRank;
+      i = j + 1;
+    }
+    let tieSum = 0;
+    i = 0;
+    while (i < N) {
+      let j = i;
+      while (j + 1 < N && values[order[j + 1]] === values[order[i]]) j++;
+      const t = j - i + 1;
+      if (t > 1) tieSum += t * t * t - t;
+      i = j + 1;
+    }
+    return { ranks, tieSum };
+  }
+  function mannWhitneyU(x, y) {
+    const n1 = x.length, n2 = y.length, N = n1 + n2;
+    const combined = x.concat(y);
+    const { ranks, tieSum } = rankWithTies(combined);
+    let R1 = 0;
+    for (let i = 0; i < n1; i++) R1 += ranks[i];
+    const U1 = R1 - n1 * (n1 + 1) / 2;
+    const U2 = n1 * n2 - U1;
+    const U = Math.min(U1, U2);
+    const meanU = n1 * n2 / 2;
+    const varU = (n1 * n2 / 12) * ((N + 1) - tieSum / (N * (N - 1)));
+    const sdU = Math.sqrt(Math.max(varU, 0));
+    let z = 0, p = 1;
+    if (sdU > 0) {
+      z = (Math.abs(U - meanU) - 0.5) / sdU;
+      if (z < 0) z = 0;
+      p = 2 * (1 - normalCDF(z));
+    }
+    return { U, z, p: Math.min(p, 1) };
+  }
+  function oneWayANOVA(groups) {
+    const k = groups.length;
+    const all = [].concat(...groups);
+    const N = all.length;
+    const grand = mean(all);
+    let SSB = 0, SSW = 0;
+    groups.forEach(g => {
+      const m = mean(g);
+      SSB += g.length * (m - grand) * (m - grand);
+      SSW += (g.length - 1) * sampleVariance(g, m);
+    });
+    const df1 = k - 1, df2 = N - k;
+    const MSB = SSB / df1, MSW = SSW / df2;
+    if (MSW === 0) return { F: MSB > 0 ? Infinity : 0, df1, df2, p: MSB > 0 ? 0 : 1 };
+    const F = MSB / MSW;
+    return { F, df1, df2, p: fTestPValue(F, df1, df2) };
+  }
+  function kruskalWallis(groups) {
+    const k = groups.length;
+    const sizes = groups.map(g => g.length);
+    const N = sizes.reduce((a, b) => a + b, 0);
+    const combined = [].concat(...groups);
+    const { ranks, tieSum } = rankWithTies(combined);
+    const Rsum = new Array(k).fill(0);
+    let idx = 0;
+    for (let g = 0; g < k; g++) {
+      for (let i = 0; i < sizes[g]; i++) { Rsum[g] += ranks[idx]; idx++; }
+    }
+    let H = 0;
+    for (let g = 0; g < k; g++) H += (Rsum[g] * Rsum[g]) / sizes[g];
+    H = (12 / (N * (N + 1))) * H - 3 * (N + 1);
+    const C = 1 - tieSum / (N * N * N - N);
+    const Hc = C > 0 ? H / C : H;
+    const df = k - 1;
+    return { H: Hc, df, p: chisqUpperP(Hc, df) };
+  }
+
+  // ---------- studentized range distribution (for Tukey HSD / Games-Howell) ----------
+  // Numerically integrates the standard double-integral definition of the
+  // studentized range CDF (see NIST/Ferreira's algorithm behind R's ptukey).
+  function normalPDF(z) { return Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI); }
+
+  function tukeyInnerIntegral(q, k, u, steps) {
+    const zMin = -8, zMax = 8;
+    const h = (zMax - zMin) / steps;
+    let sum = 0;
+    for (let i = 0; i <= steps; i++) {
+      const z = zMin + i * h;
+      const diff = Math.max(normalCDF(z) - normalCDF(z - q * u), 0);
+      const val = k * normalPDF(z) * Math.pow(diff, k - 1);
+      const w = (i === 0 || i === steps) ? 0.5 : 1;
+      sum += w * val;
+    }
+    return sum * h;
+  }
+
+  function ptukey(q, k, v) {
+    if (q <= 0) return 0;
+    if (!isFinite(v) || v > 2000) return Math.min(1, tukeyInnerIntegral(q, k, 1, 160));
+    const uSteps = 130, uMax = 8;
+    const h = uMax / uSteps;
+    let sum = 0;
+    for (let i = 0; i <= uSteps; i++) {
+      const u = i * h;
+      let f;
+      if (u <= 0) {
+        f = 0;
+      } else {
+        const logf = Math.log(2) - gammaln(v / 2) - (v / 2) * Math.log(2) +
+          (v / 2) * Math.log(v) + (v - 1) * Math.log(u) - (v * u * u) / 2;
+        f = Math.exp(logf);
+      }
+      const inner = f > 1e-14 ? tukeyInnerIntegral(q, k, u, 90) : 0;
+      const w = (i === 0 || i === uSteps) ? 0.5 : 1;
+      sum += w * f * inner;
+    }
+    return Math.min(1, Math.max(0, sum * h));
+  }
+
+  function pairLabels(k) {
+    const labels = [];
+    for (let i = 0; i < k; i++) for (let j = i + 1; j < k; j++) labels.push([i, j]);
+    return labels;
+  }
+
+  // Tukey HSD: pooled MSE and shared error df across all groups (assumes equal variance)
+  function tukeyHSD(groups) {
+    const k = groups.length;
+    const ns = groups.map(g => g.length);
+    const N = ns.reduce((a, b) => a + b, 0);
+    const means = groups.map(g => mean(g));
+    const vars = groups.map((g, i) => sampleVariance(g, means[i]));
+    let SSW = 0;
+    groups.forEach((g, i) => { SSW += (ns[i] - 1) * vars[i]; });
+    const df = N - k;
+    const MSE = SSW / df;
+    return pairLabels(k).map(([i, j]) => {
+      const se = Math.sqrt(MSE / 2 * (1 / ns[i] + 1 / ns[j]));
+      const q = se > 0 ? Math.abs(means[i] - means[j]) / se : 0;
+      const p = 1 - ptukey(q, k, df);
+      return { i, j, diff: means[i] - means[j], p };
+    });
+  }
+
+  // Games-Howell: per-pair Welch SE and Welch-Satterthwaite df (no equal-variance assumption)
+  function gamesHowell(groups) {
+    const k = groups.length;
+    const ns = groups.map(g => g.length);
+    const means = groups.map(g => mean(g));
+    const vars = groups.map((g, i) => sampleVariance(g, means[i]));
+    return pairLabels(k).map(([i, j]) => {
+      const seSq = vars[i] / ns[i] + vars[j] / ns[j];
+      const se = Math.sqrt(seSq / 2);
+      const q = se > 0 ? Math.abs(means[i] - means[j]) / se : 0;
+      const df = seSq > 0
+        ? Math.pow(seSq, 2) / (Math.pow(vars[i] / ns[i], 2) / (ns[i] - 1) + Math.pow(vars[j] / ns[j], 2) / (ns[j] - 1))
+        : 1;
+      const p = 1 - ptukey(q, k, df);
+      return { i, j, diff: means[i] - means[j], p };
+    });
+  }
+
+  // Dunn's test: pairwise rank-sum comparisons following Kruskal-Wallis, Bonferroni-adjusted
+  function dunnsTest(groups) {
+    const k = groups.length;
+    const ns = groups.map(g => g.length);
+    const N = ns.reduce((a, b) => a + b, 0);
+    const combined = [].concat(...groups);
+    const { ranks, tieSum } = rankWithTies(combined);
+    const Rsum = new Array(k).fill(0);
+    let idx = 0;
+    for (let g = 0; g < k; g++) { for (let i = 0; i < ns[g]; i++) { Rsum[g] += ranks[idx]; idx++; } }
+    const Rbar = Rsum.map((s, g) => s / ns[g]);
+    const numComparisons = pairLabels(k).length;
+    return pairLabels(k).map(([i, j]) => {
+      const varTerm = (N * (N + 1) / 12 - tieSum / (12 * (N - 1))) * (1 / ns[i] + 1 / ns[j]);
+      const se = Math.sqrt(Math.max(varTerm, 0));
+      const z = se > 0 ? (Rbar[i] - Rbar[j]) / se : 0;
+      let p = 2 * (1 - normalCDF(Math.abs(z)));
+      p = Math.min(1, p * numComparisons);
+      return { i, j, diff: Rbar[i] - Rbar[j], p };
+    });
+  }
+
+  // ---------- "nice" axis tick generation (Heckbert's algorithm) ----------
+  function niceNum(range, round) {
+    if (range === 0) return 1;
+    const exponent = Math.floor(Math.log10(range));
+    const fraction = range / Math.pow(10, exponent);
+    let niceFraction;
+    if (round) {
+      if (fraction < 1.5) niceFraction = 1;
+      else if (fraction < 3) niceFraction = 2;
+      else if (fraction < 7) niceFraction = 5;
+      else niceFraction = 10;
+    } else {
+      if (fraction <= 1) niceFraction = 1;
+      else if (fraction <= 2) niceFraction = 2;
+      else if (fraction <= 5) niceFraction = 5;
+      else niceFraction = 10;
+    }
+    return niceFraction * Math.pow(10, exponent);
+  }
+  function niceTicks(minV, maxV, targetCount) {
+    const range = niceNum(maxV - minV, false) || 1;
+    const spacing = niceNum(range / (targetCount - 1), true) || 1;
+    const niceMin = Math.floor(minV / spacing) * spacing;
+    const niceMax = Math.ceil(maxV / spacing) * spacing;
+    const ticks = [];
+    for (let v = niceMin; v <= niceMax + spacing * 1e-6; v += spacing) ticks.push(v);
+    return ticks;
+  }
+  function fmtTick(t) {
+    if (Math.abs(t - Math.round(t)) < 1e-9) return String(Math.round(t));
+    return t.toFixed(2);
+  }
+
+  // ---------- vertical, publication-style dot plot with mean ± SD ----------
+  function drawDotPlot(canvas, groups, axisRange, yLabel) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const W = rect.width, H = rect.height;
+    canvas.width = Math.max(1, W * dpr);
+    canvas.height = Math.max(1, H * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // white background regardless of app theme — this panel is meant to read like a figure
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    const pad = { left: 74, right: 16, top: 14, bottom: 34 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    const groupStats = groups.map(g => {
+      const m = mean(g.values);
+      const sd = Math.sqrt(sampleVariance(g.values, m));
+      return { m, sd };
+    });
+
+    // Axis range comes from the chosen settings (population parameters), not from
+    // this particular random draw — so the axis stays put across repeated clicks
+    // of Generate, and only moves when you actually change a setting. If a draw
+    // happens to land outside this range anyway (rare, more likely for very small
+    // n or skewed distributions), points/error bars are clipped rather than
+    // silently rescaling the whole axis underneath you.
+    let minV, maxV;
+    if (axisRange) {
+      minV = axisRange.min; maxV = axisRange.max;
+    } else {
+      const allVals = [].concat(...groups.map(g => g.values));
+      minV = Math.min.apply(null, allVals); maxV = Math.max.apply(null, allVals);
+      groupStats.forEach(s => {
+        minV = Math.min(minV, s.m - s.sd);
+        maxV = Math.max(maxV, s.m + s.sd);
+      });
+      if (minV === maxV) { minV -= 1; maxV += 1; }
+      const padAmt = (maxV - minV) * 0.12;
+      minV -= padAmt; maxV += padAmt;
+    }
+
+    const ticks = niceTicks(minV, maxV, 6);
+    const tickMin = ticks[0], tickMax = ticks[ticks.length - 1];
+    const range = (tickMax - tickMin) || 1;
+    const yFor = v => pad.top + plotH - ((v - tickMin) / range) * plotH;
+
+    // gridlines + y-axis ticks and labels
+    ctx.font = '11px "IBM Plex Mono", monospace';
+    ctx.textBaseline = 'middle';
+    ticks.forEach(t => {
+      const y = yFor(t);
+      ctx.strokeStyle = '#e6e6e6';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(pad.left + plotW, y);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#444444';
+      ctx.beginPath();
+      ctx.moveTo(pad.left - 4, y);
+      ctx.lineTo(pad.left, y);
+      ctx.stroke();
+
+      ctx.fillStyle = '#333333';
+      ctx.textAlign = 'right';
+      ctx.fillText(fmtTick(t), pad.left - 9, y);
+    });
+
+    // y-axis title, rotated
+    ctx.save();
+    ctx.translate(16, pad.top + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = '#222222';
+    ctx.font = '12px "IBM Plex Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(yLabel || 'Value (A.U.)', 0, 0);
+    ctx.restore();
+
+    // axis lines
+    ctx.strokeStyle = '#222222';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, pad.top);
+    ctx.lineTo(pad.left, pad.top + plotH);
+    ctx.lineTo(pad.left + plotW, pad.top + plotH);
+    ctx.stroke();
+
+    const k = groups.length;
+    const colW = plotW / k;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pad.left, pad.top, plotW, plotH);
+    ctx.clip();
+
+    groups.forEach((g, gi) => {
+      const cx = pad.left + colW * (gi + 0.5);
+      const { m, sd } = groupStats[gi];
+
+      // jittered points
+      g.values.forEach(v => {
+        const jitter = (Math.random() - 0.5) * colW * 0.3;
+        const px = cx + jitter;
+        const py = yFor(v);
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = g.color;
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+      });
+
+      // mean ± SD error bar, drawn on top in black for a crisp, publication look
+      const capHalf = colW * 0.16;
+      const yTop = yFor(m + sd), yBot = yFor(m - sd), yMean = yFor(m);
+      ctx.strokeStyle = '#111111';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(cx, yTop); ctx.lineTo(cx, yBot); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - capHalf, yTop); ctx.lineTo(cx + capHalf, yTop); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - capHalf, yBot); ctx.lineTo(cx + capHalf, yBot); ctx.stroke();
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      ctx.moveTo(cx - capHalf * 1.35, yMean);
+      ctx.lineTo(cx + capHalf * 1.35, yMean);
+      ctx.stroke();
+    });
+
+    ctx.restore(); // end clip region
+
+    // x-axis category labels (drawn unclipped, below the plot area)
+    groups.forEach((g, gi) => {
+      const cx = pad.left + colW * (gi + 0.5);
+      ctx.fillStyle = '#222222';
+      ctx.font = '12px "IBM Plex Sans", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(g.label, cx, pad.top + plotH + 9);
+    });
+  }
+
+  // ---------- element refs ----------
+  const els = {};
+  ['distSelect', 'sliderSampleN', 'valN', 'sliderEffect', 'valEffect', 'sliderAlpha', 'valAlpha',
+   'normalMean', 'valNormalMean', 'normalSD', 'valNormalSD',
+   'logMu', 'valLogMu', 'logSigma', 'valLogSigma',
+   'lambdaSlider', 'valLambda', 'binN', 'valBinN', 'binP', 'valBinP',
+   'btn2cond', 'btn3cond', 'btnGo', 'chartDots', 'groupStatsRow',
+   'btnLinearScale', 'btnLogScale',
+   'twoGroupTests', 'threeGroupTests',
+   'stuStat', 'stuDF', 'stuP', 'stuResult', 'stuAssumpNorm', 'stuAssumpVar',
+   'welStat', 'welDF', 'welP', 'welResult', 'welAssumpNorm', 'welAssumpVar',
+   'mwStat', 'mwZ', 'mwP', 'mwResult', 'mwAssumpNorm', 'mwAssumpVar',
+   'anovaStat', 'anovaDF', 'anovaP', 'anovaResult', 'anovaAssumpNorm', 'anovaAssumpVar',
+   'kwStat', 'kwDF', 'kwP', 'kwResult', 'kwAssumpNorm', 'kwAssumpVar',
+   'sliderEffectC', 'valEffectC', 'effectCControl',
+   'tukeyPostHocCard', 'tukeyAssumpNorm', 'tukeyAssumpVar',
+   'tukeyPH_AB', 'tukeyPH_AC', 'tukeyPH_BC', 'tukeyPostHocNote',
+   'ghPostHocCard', 'ghAssumpNorm', 'ghAssumpVar',
+   'ghPH_AB', 'ghPH_AC', 'ghPH_BC', 'ghPostHocNote',
+   'kwPostHocCard', 'kwPHAssumpNorm', 'kwPHAssumpVar',
+   'kwPH_AB', 'kwPH_AC', 'kwPH_BC', 'kwPostHocNote'
+  ].forEach(id => { els[id] = document.getElementById(id); });
+
+  let numConditions = 2;
+  let useLog = false;         // persists across Generate clicks until the user changes it
+  let lastContext = null;     // raw samples + settings from the most recent Generate click
+
+  // ---------- live label updates (no resimulation) ----------
+  function bindLiveLabel(slider, label, transform) {
+    slider.addEventListener('input', () => { label.textContent = transform(parseInt(slider.value, 10)); });
+  }
+  bindLiveLabel(els.sliderSampleN, els.valN, v => v);
+  bindLiveLabel(els.sliderEffect, els.valEffect, v => (v / 10).toFixed(1) + ' SD');
+  bindLiveLabel(els.sliderEffectC, els.valEffectC, v => (v / 10).toFixed(1) + ' SD');
+  bindLiveLabel(els.sliderAlpha, els.valAlpha, v => (v / 100).toFixed(2));
+  bindLiveLabel(els.normalMean, els.valNormalMean, v => v);
+  bindLiveLabel(els.normalSD, els.valNormalSD, v => v);
+  bindLiveLabel(els.logMu, els.valLogMu, v => (v / 10).toFixed(1));
+  bindLiveLabel(els.logSigma, els.valLogSigma, v => (v / 100).toFixed(2));
+  bindLiveLabel(els.lambdaSlider, els.valLambda, v => v);
+  bindLiveLabel(els.binN, els.valBinN, v => v);
+  bindLiveLabel(els.binP, els.valBinP, v => (v / 100).toFixed(2));
+
+  // ---------- distribution panel toggling ----------
+  function updateDistPanels() {
+    document.querySelectorAll('.param-group').forEach(p => {
+      p.classList.toggle('active', p.getAttribute('data-dist') === els.distSelect.value);
+    });
+  }
+  els.distSelect.addEventListener('change', updateDistPanels);
+  updateDistPanels();
+
+  // ---------- condition toggle ----------
+  els.btn2cond.addEventListener('click', () => {
+    numConditions = 2;
+    els.btn2cond.classList.add('active');
+    els.btn3cond.classList.remove('active');
+    els.effectCControl.style.display = 'none';
+  });
+  els.btn3cond.addEventListener('click', () => {
+    numConditions = 3;
+    els.btn3cond.classList.add('active');
+    els.btn2cond.classList.remove('active');
+    els.effectCControl.style.display = '';
+  });
+
+  function fillTestCard(prefix, statLabel, stat, df, p, alpha) {
+    els[prefix + 'Stat'].textContent = statLabel + ' = ' + safeFixed(stat, 3);
+    if (els[prefix + 'DF']) {
+      els[prefix + 'DF'].textContent = (df === null || df === undefined) ? '—' :
+        (typeof df === 'number' ? safeFixed(df, df % 1 === 0 ? 0 : 1) : df);
+    }
+    els[prefix + 'P'].textContent = fmtP(p);
+    const sig = isFinite(p) && p < alpha;
+    els[prefix + 'Result'].innerHTML = sig
+      ? '<span style="color:var(--warn)">significant</span>'
+      : '<span style="color:var(--muted)">not significant</span>';
+  }
+
+  function theoreticalStats(dist, p) {
+    if (dist === 'normal') return { mean: p.mean, sd: p.sd };
+    if (dist === 'lognormal') {
+      const m = Math.exp(p.mu + p.sigma * p.sigma / 2);
+      const v = (Math.exp(p.sigma * p.sigma) - 1) * Math.exp(2 * p.mu + p.sigma * p.sigma);
+      return { mean: m, sd: Math.sqrt(v) };
+    }
+    if (dist === 'poisson') return { mean: p.lambda, sd: Math.sqrt(p.lambda) };
+    // binomial
+    return { mean: p.nTrials * p.p, sd: Math.sqrt(p.nTrials * p.p * (1 - p.p)) };
+  }
+
+  function transformValues(raw) {
+    if (!useLog) return raw.slice();
+    return raw.map(v => Math.log10(Math.max(v, 1e-6)));
+  }
+
+  // delta-method approximation of log10(X)'s mean/SD from X's own mean/SD.
+  // Exact when X is log-normal; a reasonable stand-in for the others, used only
+  // to keep the plot axis stable — the actual tests always run on the real
+  // (possibly log-transformed) sample data, computed exactly.
+  function approxLogStats(theo) {
+    const muX = Math.max(theo.mean, 1e-6);
+    const cv2 = Math.pow(theo.sd / muX, 2);
+    const varLn = Math.log(1 + cv2);
+    const meanLn = Math.log(muX) - 0.5 * varLn;
+    return { mean: meanLn / Math.LN10, sd: Math.sqrt(varLn) / Math.LN10 };
+  }
+
+  function setAssumptionColor(el, valid) {
+    el.style.color = valid ? cssVar('--well') : cssVar('--warn');
+  }
+
+  function fillPostHocCard(prefix, pairResults, alpha, enabled, noteEl) {
+    const rowIds = { '0,1': prefix + 'PH_AB', '0,2': prefix + 'PH_AC', '1,2': prefix + 'PH_BC' };
+    pairResults.forEach(r => {
+      const id = rowIds[r.i + ',' + r.j];
+      if (!id || !els[id]) return;
+      if (!enabled) { els[id].textContent = '—'; return; }
+      const sig = isFinite(r.p) && r.p < alpha;
+      els[id].innerHTML = fmtP(r.p) + (sig
+        ? ' <span style="color:var(--warn)">*</span>'
+        : '');
+    });
+    noteEl.style.display = enabled ? 'none' : 'block';
+  }
+
+  function renderAll() {
+    if (!lastContext) return;
+    const { dist, n, theoA, theoB, theoC, rawGroupA, rawGroupB, rawGroupC } = lastContext;
+    const alpha = parseInt(els.sliderAlpha.value, 10) / 100;
+
+    const groupA = transformValues(rawGroupA);
+    const groupB = transformValues(rawGroupB);
+    const groupC = rawGroupC ? transformValues(rawGroupC) : null;
+
+    const axStatA = useLog ? approxLogStats(theoA) : theoA;
+    const axStatB = useLog ? approxLogStats(theoB) : theoB;
+    const axStatC = theoC ? (useLog ? approxLogStats(theoC) : theoC) : null;
+    const axStats = [axStatA, axStatB].concat(axStatC ? [axStatC] : []);
+
+    const marginMult = 4 * (1 + 3 / Math.sqrt(n));
+    let axisMin = Math.min.apply(null, axStats.map(s => s.mean - marginMult * s.sd));
+    let axisMax = Math.max.apply(null, axStats.map(s => s.mean + marginMult * s.sd));
+    if (axisMin === axisMax) { axisMin -= 1; axisMax += 1; }
+    const axisRange = { min: axisMin, max: axisMax };
+
+    const groups = [
+      { label: 'Group A', color: cssVar('--add'), values: groupA },
+      { label: 'Group B', color: cssVar('--mult'), values: groupB }
+    ];
+    if (groupC) groups.push({ label: 'Group C', color: cssVar('--well'), values: groupC });
+
+    const yLabel = useLog ? 'log\u2081\u2080(Value) (A.U.)' : 'Value (A.U.)';
+    drawDotPlot(els.chartDots, groups, axisRange, yLabel);
+
+    els.groupStatsRow.innerHTML = groups.map(g => {
+      const m = mean(g.values), s = Math.sqrt(sampleVariance(g.values, m));
+      return '<span>' + g.label + ': n=<b>' + g.values.length + '</b>, mean=<b>' + m.toFixed(2) +
+        '</b>, SD=<b>' + s.toFixed(2) + '</b></span>';
+    }).join('');
+
+    // assumption validity, evaluated on whichever scale (linear or log) is
+    // currently displayed and actually fed into the tests below
+    const normalityValid = (dist === 'normal') || (dist === 'lognormal' && useLog);
+    const sds = axStats.map(s => s.sd);
+    const relDiff = (Math.max.apply(null, sds) - Math.min.apply(null, sds)) / Math.max(Math.max.apply(null, sds), 1e-9);
+    const equalVarianceValid = relDiff < 0.05;
+
+    setAssumptionColor(els.stuAssumpNorm, normalityValid);
+    setAssumptionColor(els.stuAssumpVar, equalVarianceValid);
+    setAssumptionColor(els.welAssumpNorm, normalityValid);
+    setAssumptionColor(els.welAssumpVar, true);
+    setAssumptionColor(els.mwAssumpNorm, true);
+    setAssumptionColor(els.mwAssumpVar, true);
+    setAssumptionColor(els.anovaAssumpNorm, normalityValid);
+    setAssumptionColor(els.anovaAssumpVar, equalVarianceValid);
+    setAssumptionColor(els.kwAssumpNorm, true);
+    setAssumptionColor(els.kwAssumpVar, true);
+
+    if (numConditions === 2) {
+      const stu = studentT(groupA, groupB);
+      const wel = welchT(groupA, groupB);
+      const mw = mannWhitneyU(groupA, groupB);
+      fillTestCard('stu', 't', stu.t, stu.df, stu.p, alpha);
+      fillTestCard('wel', 't', wel.t, wel.df, wel.p, alpha);
+      fillTestCard('mw', 'U', mw.U, null, mw.p, alpha);
+      els.mwZ.textContent = safeFixed(mw.z, 3);
+      els.twoGroupTests.style.display = 'grid';
+      els.threeGroupTests.style.display = 'none';
+    } else {
+      const trio = [groupA, groupB, groupC];
+      const anova = oneWayANOVA(trio);
+      const kw = kruskalWallis(trio);
+      fillTestCard('anova', 'F', anova.F, anova.df1 + ', ' + anova.df2, anova.p, alpha);
+      fillTestCard('kw', 'H', kw.H, kw.df, kw.p, alpha);
+      els.twoGroupTests.style.display = 'none';
+      els.threeGroupTests.style.display = 'grid';
+
+      // ANOVA post-hoc: show Tukey HSD and Games-Howell side by side always, so the
+      // impact of the equal-variance assumption is visible rather than hidden behind
+      // an automatic choice. Both are gated on the same ANOVA significance check.
+      const anovaSig = isFinite(anova.p) && anova.p < alpha;
+
+      els.tukeyPostHocCard.classList.toggle('disabled', !anovaSig);
+      setAssumptionColor(els.tukeyAssumpNorm, normalityValid);
+      setAssumptionColor(els.tukeyAssumpVar, equalVarianceValid);
+      fillPostHocCard('tukey', tukeyHSD(trio), alpha, anovaSig, els.tukeyPostHocNote);
+
+      els.ghPostHocCard.classList.toggle('disabled', !anovaSig);
+      setAssumptionColor(els.ghAssumpNorm, normalityValid);
+      setAssumptionColor(els.ghAssumpVar, true);
+      fillPostHocCard('gh', gamesHowell(trio), alpha, anovaSig, els.ghPostHocNote);
+
+      // Kruskal-Wallis post-hoc: Dunn's test, always assumption-free like KW itself
+      const kwSig = isFinite(kw.p) && kw.p < alpha;
+      els.kwPostHocCard.classList.toggle('disabled', !kwSig);
+      setAssumptionColor(els.kwPHAssumpNorm, true);
+      setAssumptionColor(els.kwPHAssumpVar, true);
+      fillPostHocCard('kw', dunnsTest(trio), alpha, kwSig, els.kwPostHocNote);
+    }
+  }
+
+  // reads current sliders for the chosen distribution and returns the baseline
+  // params, a function that shifts those params by an arbitrary effect size
+  // (in baseline-SD units), and the sampler for one group
+  function getDistConfig(dist, n) {
+    if (dist === 'normal') {
+      const muA = parseInt(els.normalMean.value, 10);
+      const sd = parseInt(els.normalSD.value, 10);
+      return {
+        paramsBaseline: { mean: muA, sd: sd },
+        shiftFn: effect => ({ mean: muA + effect * sd, sd: sd }),
+        genGroupFn: p => Array.from({ length: n }, () => p.mean + p.sd * randNormal())
+      };
+    }
+    if (dist === 'lognormal') {
+      const muLog = parseInt(els.logMu.value, 10) / 10;
+      const sigmaLog = parseInt(els.logSigma.value, 10) / 100;
+      return {
+        paramsBaseline: { mu: muLog, sigma: sigmaLog },
+        shiftFn: effect => ({ mu: muLog + effect * sigmaLog, sigma: sigmaLog }),
+        genGroupFn: p => Array.from({ length: n }, () => Math.exp(p.mu + p.sigma * randNormal()))
+      };
+    }
+    if (dist === 'poisson') {
+      const lambda = parseInt(els.lambdaSlider.value, 10);
+      const baselineSD = Math.sqrt(lambda);
+      return {
+        paramsBaseline: { lambda: lambda },
+        shiftFn: effect => ({ lambda: Math.max(0.2, lambda + effect * baselineSD) }),
+        genGroupFn: p => Array.from({ length: n }, () => poissonSample(p.lambda))
+      };
+    }
+    // binomial
+    const nt = parseInt(els.binN.value, 10);
+    const p0 = parseInt(els.binP.value, 10) / 100;
+    const baselineSD = Math.sqrt(p0 * (1 - p0));
+    return {
+      paramsBaseline: { nTrials: nt, p: p0 },
+      shiftFn: effect => ({ nTrials: nt, p: Math.min(0.98, Math.max(0.02, p0 + effect * baselineSD)) }),
+      genGroupFn: p => Array.from({ length: n }, () => binomialSample(p.nTrials, p.p))
+    };
+  }
+
+  function runGo() {
+    const dist = els.distSelect.value;
+    const n = parseInt(els.sliderSampleN.value, 10);
+    const effectB = parseInt(els.sliderEffect.value, 10) / 10;
+    const effectC = parseInt(els.sliderEffectC.value, 10) / 10;
+
+    const cfg = getDistConfig(dist, n);
+    const paramsBaseline = cfg.paramsBaseline;
+    const paramsShifted = cfg.shiftFn(effectB);
+    const paramsShiftedC = cfg.shiftFn(effectC);
+    const genGroupFn = cfg.genGroupFn;
+
+    const rawGroupA = genGroupFn(paramsBaseline);
+    const rawGroupB = genGroupFn(paramsShifted);
+    const rawGroupC = numConditions === 3 ? genGroupFn(paramsShiftedC) : null;
+
+    const theoA = theoreticalStats(dist, paramsBaseline);
+    const theoB = theoreticalStats(dist, paramsShifted);
+    const theoC = numConditions === 3 ? theoreticalStats(dist, paramsShiftedC) : null;
+
+    lastContext = { dist, n, theoA, theoB, theoC, rawGroupA, rawGroupB, rawGroupC };
+    renderAll();
+  }
+
+  els.btnGo.addEventListener('click', runGo);
+
+  els.btnLinearScale.addEventListener('click', () => {
+    useLog = false;
+    els.btnLinearScale.classList.add('active');
+    els.btnLogScale.classList.remove('active');
+    renderAll();
+  });
+  els.btnLogScale.addEventListener('click', () => {
+    useLog = true;
+    els.btnLogScale.classList.add('active');
+    els.btnLinearScale.classList.remove('active');
+    renderAll();
+  });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(renderAll, 150);
+  });
+
+  runGo();
+})();
+</script>
+</body>
+</html>
