@@ -81,6 +81,15 @@
   }
   .control label span.val { font-family: var(--mono); color: var(--ink); font-weight: 600; }
   input[type="range"] { width: 100%; accent-color: var(--mult); }
+  .slider-row { display: flex; align-items: center; gap: 8px; }
+  .slider-row input[type="range"] { flex: 1; min-width: 0; }
+  .num-input {
+    width: 60px; flex: none; font-family: var(--mono); font-size: 12.5px;
+    padding: 4px 6px; border: 1px solid var(--grid); border-radius: 6px;
+    background: var(--panel-2); color: var(--ink); text-align: right;
+  }
+  .num-input:focus { outline: none; border-color: var(--mult); }
+  .slider-row .unit { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
   select {
     width: 100%; font-family: var(--sans); font-size: 13.5px;
     padding: 7px 9px; border-radius: 7px; border: 1px solid var(--grid);
@@ -180,7 +189,7 @@
       <label>True population distribution</label>
       <select id="distSelect">
         <option value="normal">Normal</option>
-        <option value="lognormal">Log-normal</option>
+        <option value="lognormal" selected>Log-normal</option>
         <option value="poisson">Poisson</option>
         <option value="binomial">Binomial</option>
       </select>
@@ -193,62 +202,99 @@
       </div>
     </div>
     <div class="control">
-      <label>Samples per condition (n) <span class="val" id="valN">15</span></label>
-      <input type="range" id="sliderSampleN" min="3" max="100" step="1" value="15">
+      <label>Samples per condition (n)</label>
+      <div class="slider-row">
+        <input type="range" id="sliderSampleN" min="3" max="100" step="1" value="15">
+        <input type="number" class="num-input" id="numSampleN" min="3" max="100" step="1" value="15">
+      </div>
     </div>
     <div class="control">
-      <label>Effect size, B vs A <span class="val" id="valEffect">0.0 SD</span></label>
-      <input type="range" id="sliderEffect" min="-20" max="20" step="1" value="0">
+      <label>Effect size, B vs A</label>
+      <div class="slider-row">
+        <input type="range" id="sliderEffect" min="-20" max="20" step="1" value="13">
+        <input type="number" class="num-input" id="numEffect" min="-2" max="2" step="0.1" value="1.3">
+        <span class="unit">SD</span>
+      </div>
     </div>
     <div class="control" id="effectCControl" style="display:none;">
-      <label>Effect size, C vs A <span class="val" id="valEffectC">0.0 SD</span></label>
-      <input type="range" id="sliderEffectC" min="-20" max="20" step="1" value="0">
+      <label>Effect size, C vs A</label>
+      <div class="slider-row">
+        <input type="range" id="sliderEffectC" min="-20" max="20" step="1" value="0">
+        <input type="number" class="num-input" id="numEffectC" min="-2" max="2" step="0.1" value="0.0">
+        <span class="unit">SD</span>
+      </div>
     </div>
   </div>
 
   <div class="param-panels">
     <div class="param-group" data-dist="normal">
       <div class="control">
-        <label>Baseline mean, μ <span class="val" id="valNormalMean">10</span></label>
-        <input type="range" id="normalMean" min="-20" max="20" step="1" value="10">
+        <label>Baseline mean, μ</label>
+        <div class="slider-row">
+          <input type="range" id="normalMean" min="-30" max="30" step="1" value="0">
+          <input type="number" class="num-input" id="numNormalMean" min="-3" max="3" step="0.1" value="0.0">
+          <span class="unit">A.U.</span>
+        </div>
       </div>
       <div class="control">
-        <label>Baseline SD, σ <span class="val" id="valNormalSD">3</span></label>
-        <input type="range" id="normalSD" min="1" max="20" step="1" value="3">
+        <label>Baseline SD, σ</label>
+        <div class="slider-row">
+          <input type="range" id="normalSD" min="1" max="30" step="1" value="10">
+          <input type="number" class="num-input" id="numNormalSD" min="0.1" max="3" step="0.1" value="1.0">
+          <span class="unit">A.U.</span>
+        </div>
       </div>
     </div>
     <div class="param-group" data-dist="lognormal">
       <div class="control">
-        <label>Baseline meanlog, μ <span class="val" id="valLogMu">1.5</span></label>
-        <input type="range" id="logMu" min="-20" max="40" step="1" value="15">
+        <label>Baseline meanlog, μ</label>
+        <div class="slider-row">
+          <input type="range" id="logMu" min="-200" max="400" step="1" value="24">
+          <input type="number" class="num-input" id="numLogMu" min="-2" max="4" step="0.01" value="0.24">
+        </div>
       </div>
       <div class="control">
-        <label>Baseline sdlog, σ <span class="val" id="valLogSigma">0.40</span></label>
-        <input type="range" id="logSigma" min="5" max="150" step="5" value="40">
+        <label>Baseline sdlog, σ</label>
+        <div class="slider-row">
+          <input type="range" id="logSigma" min="5" max="150" step="1" value="6">
+          <input type="number" class="num-input" id="numLogSigma" min="0.05" max="1.5" step="0.01" value="0.06">
+        </div>
       </div>
     </div>
     <div class="param-group" data-dist="poisson">
       <div class="control">
-        <label>Baseline rate, λ <span class="val" id="valLambda">8</span></label>
-        <input type="range" id="lambdaSlider" min="1" max="50" step="1" value="8">
+        <label>Baseline rate, λ</label>
+        <div class="slider-row">
+          <input type="range" id="lambdaSlider" min="1" max="50" step="1" value="8">
+          <input type="number" class="num-input" id="numLambda" min="1" max="50" step="1" value="8">
+        </div>
       </div>
     </div>
     <div class="param-group" data-dist="binomial">
       <div class="control">
-        <label>Trials, n <span class="val" id="valBinN">20</span></label>
-        <input type="range" id="binN" min="2" max="100" step="1" value="20">
+        <label>Trials, n</label>
+        <div class="slider-row">
+          <input type="range" id="binN" min="2" max="100" step="1" value="20">
+          <input type="number" class="num-input" id="numBinN" min="2" max="100" step="1" value="20">
+        </div>
       </div>
       <div class="control">
-        <label>Probability, p <span class="val" id="valBinP">0.30</span></label>
-        <input type="range" id="binP" min="1" max="99" step="1" value="30">
+        <label>Probability, p</label>
+        <div class="slider-row">
+          <input type="range" id="binP" min="1" max="99" step="1" value="30">
+          <input type="number" class="num-input" id="numBinP" min="0.01" max="0.99" step="0.01" value="0.30">
+        </div>
       </div>
     </div>
   </div>
 
   <div class="controls" style="margin-top:14px;">
     <div class="control">
-      <label>Significance threshold, α <span class="val" id="valAlpha">0.05</span></label>
-      <input type="range" id="sliderAlpha" min="1" max="20" step="1" value="5">
+      <label>Significance threshold, α</label>
+      <div class="slider-row">
+        <input type="range" id="sliderAlpha" min="1" max="20" step="1" value="5">
+        <input type="number" class="num-input" id="numAlpha" min="0.01" max="0.20" step="0.01" value="0.05">
+      </div>
     </div>
   </div>
 
@@ -876,10 +922,10 @@
 
   // ---------- element refs ----------
   const els = {};
-  ['distSelect', 'sliderSampleN', 'valN', 'sliderEffect', 'valEffect', 'sliderAlpha', 'valAlpha',
-   'normalMean', 'valNormalMean', 'normalSD', 'valNormalSD',
-   'logMu', 'valLogMu', 'logSigma', 'valLogSigma',
-   'lambdaSlider', 'valLambda', 'binN', 'valBinN', 'binP', 'valBinP',
+  ['distSelect', 'sliderSampleN', 'numSampleN', 'sliderEffect', 'numEffect', 'sliderAlpha', 'numAlpha',
+   'normalMean', 'numNormalMean', 'normalSD', 'numNormalSD',
+   'logMu', 'numLogMu', 'logSigma', 'numLogSigma',
+   'lambdaSlider', 'numLambda', 'binN', 'numBinN', 'binP', 'numBinP',
    'btn2cond', 'btn3cond', 'btnGo', 'chartDots', 'groupStatsRow',
    'btnLinearScale', 'btnLogScale',
    'twoGroupTests', 'threeGroupTests',
@@ -888,7 +934,7 @@
    'mwStat', 'mwZ', 'mwP', 'mwResult', 'mwAssumpNorm', 'mwAssumpVar',
    'anovaStat', 'anovaDF', 'anovaP', 'anovaResult', 'anovaAssumpNorm', 'anovaAssumpVar',
    'kwStat', 'kwDF', 'kwP', 'kwResult', 'kwAssumpNorm', 'kwAssumpVar',
-   'sliderEffectC', 'valEffectC', 'effectCControl',
+   'sliderEffectC', 'numEffectC', 'effectCControl',
    'tukeyPostHocCard', 'tukeyAssumpNorm', 'tukeyAssumpVar',
    'tukeyPH_AB', 'tukeyPH_AC', 'tukeyPH_BC', 'tukeyPostHocNote',
    'ghPostHocCard', 'ghAssumpNorm', 'ghAssumpVar',
@@ -901,21 +947,40 @@
   let useLog = false;         // persists across Generate clicks until the user changes it
   let lastContext = null;     // raw samples + settings from the most recent Generate click
 
-  // ---------- live label updates (no resimulation) ----------
-  function bindLiveLabel(slider, label, transform) {
-    slider.addEventListener('input', () => { label.textContent = transform(parseInt(slider.value, 10)); });
+  // ---------- two-way slider <-> number input linking (no resimulation) ----------
+  // scale: slider's raw integer value is divided by this to get the real display value
+  // decimals: how many decimal places the number box shows/rounds to
+  function linkSliderNumber(slider, numberBox, scale, decimals) {
+    const toDisplay = raw => raw / scale;
+    const toRaw = disp => Math.round(disp * scale);
+    const minDisp = Math.min(toDisplay(parseFloat(slider.min)), toDisplay(parseFloat(slider.max)));
+    const maxDisp = Math.max(toDisplay(parseFloat(slider.min)), toDisplay(parseFloat(slider.max)));
+
+    slider.addEventListener('input', () => {
+      numberBox.value = toDisplay(parseFloat(slider.value)).toFixed(decimals);
+    });
+    numberBox.addEventListener('change', () => {
+      let disp = parseFloat(numberBox.value);
+      if (isNaN(disp)) { numberBox.value = toDisplay(parseFloat(slider.value)).toFixed(decimals); return; }
+      disp = Math.min(Math.max(disp, minDisp), maxDisp);
+      slider.value = toRaw(disp);
+      numberBox.value = disp.toFixed(decimals);
+    });
+    // initialize number box from the slider's starting value
+    numberBox.value = toDisplay(parseFloat(slider.value)).toFixed(decimals);
   }
-  bindLiveLabel(els.sliderSampleN, els.valN, v => v);
-  bindLiveLabel(els.sliderEffect, els.valEffect, v => (v / 10).toFixed(1) + ' SD');
-  bindLiveLabel(els.sliderEffectC, els.valEffectC, v => (v / 10).toFixed(1) + ' SD');
-  bindLiveLabel(els.sliderAlpha, els.valAlpha, v => (v / 100).toFixed(2));
-  bindLiveLabel(els.normalMean, els.valNormalMean, v => v);
-  bindLiveLabel(els.normalSD, els.valNormalSD, v => v);
-  bindLiveLabel(els.logMu, els.valLogMu, v => (v / 10).toFixed(1));
-  bindLiveLabel(els.logSigma, els.valLogSigma, v => (v / 100).toFixed(2));
-  bindLiveLabel(els.lambdaSlider, els.valLambda, v => v);
-  bindLiveLabel(els.binN, els.valBinN, v => v);
-  bindLiveLabel(els.binP, els.valBinP, v => (v / 100).toFixed(2));
+
+  linkSliderNumber(els.sliderSampleN, els.numSampleN, 1, 0);
+  linkSliderNumber(els.sliderEffect, els.numEffect, 10, 1);
+  linkSliderNumber(els.sliderEffectC, els.numEffectC, 10, 1);
+  linkSliderNumber(els.sliderAlpha, els.numAlpha, 100, 2);
+  linkSliderNumber(els.normalMean, els.numNormalMean, 10, 1);
+  linkSliderNumber(els.normalSD, els.numNormalSD, 10, 1);
+  linkSliderNumber(els.logMu, els.numLogMu, 100, 2);
+  linkSliderNumber(els.logSigma, els.numLogSigma, 100, 2);
+  linkSliderNumber(els.lambdaSlider, els.numLambda, 1, 0);
+  linkSliderNumber(els.binN, els.numBinN, 1, 0);
+  linkSliderNumber(els.binP, els.numBinP, 100, 2);
 
   // ---------- distribution panel toggling ----------
   function updateDistPanels() {
@@ -967,19 +1032,20 @@
 
   function transformValues(raw) {
     if (!useLog) return raw.slice();
-    return raw.map(v => Math.log10(Math.max(v, 1e-6)));
+    return raw.map(v => Math.log(Math.max(v, 1e-6)));
   }
 
-  // delta-method approximation of log10(X)'s mean/SD from X's own mean/SD.
-  // Exact when X is log-normal; a reasonable stand-in for the others, used only
-  // to keep the plot axis stable — the actual tests always run on the real
-  // (possibly log-transformed) sample data, computed exactly.
+  // delta-method approximation of ln(X)'s mean/SD from X's own mean/SD. Exact when
+  // X is log-normal (matches meanlog/sdlog directly, since those are ln-based) —
+  // a reasonable stand-in for the other distributions, used only to keep the plot
+  // axis stable. The actual tests always run on the real (possibly log-transformed)
+  // sample data, computed exactly.
   function approxLogStats(theo) {
     const muX = Math.max(theo.mean, 1e-6);
     const cv2 = Math.pow(theo.sd / muX, 2);
     const varLn = Math.log(1 + cv2);
     const meanLn = Math.log(muX) - 0.5 * varLn;
-    return { mean: meanLn / Math.LN10, sd: Math.sqrt(varLn) / Math.LN10 };
+    return { mean: meanLn, sd: Math.sqrt(varLn) };
   }
 
   function setAssumptionColor(el, valid) {
@@ -1026,7 +1092,7 @@
     ];
     if (groupC) groups.push({ label: 'Group C', color: cssVar('--well'), values: groupC });
 
-    const yLabel = useLog ? 'log\u2081\u2080(Value) (A.U.)' : 'Value (A.U.)';
+    const yLabel = useLog ? 'ln(Value) (A.U.)' : 'Value (A.U.)';
     drawDotPlot(els.chartDots, groups, axisRange, yLabel);
 
     els.groupStatsRow.innerHTML = groups.map(g => {
@@ -1101,8 +1167,8 @@
   // (in baseline-SD units), and the sampler for one group
   function getDistConfig(dist, n) {
     if (dist === 'normal') {
-      const muA = parseInt(els.normalMean.value, 10);
-      const sd = parseInt(els.normalSD.value, 10);
+      const muA = parseInt(els.normalMean.value, 10) / 10;
+      const sd = parseInt(els.normalSD.value, 10) / 10;
       return {
         paramsBaseline: { mean: muA, sd: sd },
         shiftFn: effect => ({ mean: muA + effect * sd, sd: sd }),
@@ -1110,11 +1176,23 @@
       };
     }
     if (dist === 'lognormal') {
-      const muLog = parseInt(els.logMu.value, 10) / 10;
+      const muLog = parseInt(els.logMu.value, 10) / 100;
       const sigmaLog = parseInt(els.logSigma.value, 10) / 100;
+      // baseline natural-scale mean/SD, so effect size means "d natural-scale SDs"
+      // here too, matching the other three distributions, rather than "d sdlog units"
+      const meanA = Math.exp(muLog + sigmaLog * sigmaLog / 2);
+      const varA = (Math.exp(sigmaLog * sigmaLog) - 1) * Math.exp(2 * muLog + sigmaLog * sigmaLog);
+      const sdA = Math.sqrt(varA);
       return {
         paramsBaseline: { mu: muLog, sigma: sigmaLog },
-        shiftFn: effect => ({ mu: muLog + effect * sigmaLog, sigma: sigmaLog }),
+        shiftFn: effect => {
+          // sigma (log-space spread) stays fixed, so CV stays fixed too — only the
+          // target natural-scale mean moves, by effect * sdA, same convention as
+          // Normal/Poisson/Binomial
+          const targetMean = Math.max(meanA + effect * sdA, 1e-6);
+          const newMu = Math.log(targetMean) - sigmaLog * sigmaLog / 2;
+          return { mu: newMu, sigma: sigmaLog };
+        },
         genGroupFn: p => Array.from({ length: n }, () => Math.exp(p.mu + p.sigma * randNormal()))
       };
     }
