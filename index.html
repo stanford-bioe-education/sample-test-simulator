@@ -188,8 +188,8 @@
     <div class="control">
       <label>True population distribution</label>
       <select id="distSelect">
-        <option value="normal">Normal</option>
-        <option value="lognormal" selected>Log-normal</option>
+        <option value="normal" selected>Normal</option>
+        <option value="lognormal">Log-normal</option>
         <option value="poisson">Poisson</option>
         <option value="binomial">Binomial</option>
       </select>
@@ -213,7 +213,7 @@
       <div class="slider-row">
         <input type="range" id="sliderEffect" min="-20" max="20" step="1" value="13">
         <input type="number" class="num-input" id="numEffect" min="-2" max="2" step="0.1" value="1.3">
-        <span class="unit">SD</span>
+        <span class="unit" id="effectUnit">SD</span>
       </div>
     </div>
     <div class="control" id="effectCControl" style="display:none;">
@@ -221,7 +221,7 @@
       <div class="slider-row">
         <input type="range" id="sliderEffectC" min="-20" max="20" step="1" value="0">
         <input type="number" class="num-input" id="numEffectC" min="-2" max="2" step="0.1" value="0.0">
-        <span class="unit">SD</span>
+        <span class="unit" id="effectUnitC">SD</span>
       </div>
     </div>
   </div>
@@ -231,16 +231,16 @@
       <div class="control">
         <label>Baseline mean, μ</label>
         <div class="slider-row">
-          <input type="range" id="normalMean" min="-30" max="30" step="1" value="0">
-          <input type="number" class="num-input" id="numNormalMean" min="-3" max="3" step="0.1" value="0.0">
+          <input type="range" id="normalMean" min="-300" max="300" step="1" value="24">
+          <input type="number" class="num-input" id="numNormalMean" min="-3" max="3" step="0.01" value="0.24">
           <span class="unit">A.U.</span>
         </div>
       </div>
       <div class="control">
         <label>Baseline SD, σ</label>
         <div class="slider-row">
-          <input type="range" id="normalSD" min="1" max="30" step="1" value="10">
-          <input type="number" class="num-input" id="numNormalSD" min="0.1" max="3" step="0.1" value="1.0">
+          <input type="range" id="normalSD" min="1" max="300" step="1" value="6">
+          <input type="number" class="num-input" id="numNormalSD" min="0.01" max="3" step="0.01" value="0.06">
           <span class="unit">A.U.</span>
         </div>
       </div>
@@ -934,7 +934,7 @@
    'mwStat', 'mwZ', 'mwP', 'mwResult', 'mwAssumpNorm', 'mwAssumpVar',
    'anovaStat', 'anovaDF', 'anovaP', 'anovaResult', 'anovaAssumpNorm', 'anovaAssumpVar',
    'kwStat', 'kwDF', 'kwP', 'kwResult', 'kwAssumpNorm', 'kwAssumpVar',
-   'sliderEffectC', 'numEffectC', 'effectCControl',
+   'sliderEffectC', 'numEffectC', 'effectCControl', 'effectUnit', 'effectUnitC',
    'tukeyPostHocCard', 'tukeyAssumpNorm', 'tukeyAssumpVar',
    'tukeyPH_AB', 'tukeyPH_AC', 'tukeyPH_BC', 'tukeyPostHocNote',
    'ghPostHocCard', 'ghAssumpNorm', 'ghAssumpVar',
@@ -974,8 +974,8 @@
   linkSliderNumber(els.sliderEffect, els.numEffect, 10, 1);
   linkSliderNumber(els.sliderEffectC, els.numEffectC, 10, 1);
   linkSliderNumber(els.sliderAlpha, els.numAlpha, 100, 2);
-  linkSliderNumber(els.normalMean, els.numNormalMean, 10, 1);
-  linkSliderNumber(els.normalSD, els.numNormalSD, 10, 1);
+  linkSliderNumber(els.normalMean, els.numNormalMean, 100, 2);
+  linkSliderNumber(els.normalSD, els.numNormalSD, 100, 2);
   linkSliderNumber(els.logMu, els.numLogMu, 100, 2);
   linkSliderNumber(els.logSigma, els.numLogSigma, 100, 2);
   linkSliderNumber(els.lambdaSlider, els.numLambda, 1, 0);
@@ -987,6 +987,11 @@
     document.querySelectorAll('.param-group').forEach(p => {
       p.classList.toggle('active', p.getAttribute('data-dist') === els.distSelect.value);
     });
+    // log-normal's effect size is in sdlog (log-space) units; the other three
+    // distributions use natural-scale SD units — label it accordingly
+    const unitLabel = els.distSelect.value === 'lognormal' ? 'sdlog' : 'SD';
+    els.effectUnit.textContent = unitLabel;
+    els.effectUnitC.textContent = unitLabel;
   }
   els.distSelect.addEventListener('change', updateDistPanels);
   updateDistPanels();
@@ -1167,8 +1172,8 @@
   // (in baseline-SD units), and the sampler for one group
   function getDistConfig(dist, n) {
     if (dist === 'normal') {
-      const muA = parseInt(els.normalMean.value, 10) / 10;
-      const sd = parseInt(els.normalSD.value, 10) / 10;
+      const muA = parseInt(els.normalMean.value, 10) / 100;
+      const sd = parseInt(els.normalSD.value, 10) / 100;
       return {
         paramsBaseline: { mean: muA, sd: sd },
         shiftFn: effect => ({ mean: muA + effect * sd, sd: sd }),
@@ -1178,21 +1183,13 @@
     if (dist === 'lognormal') {
       const muLog = parseInt(els.logMu.value, 10) / 100;
       const sigmaLog = parseInt(els.logSigma.value, 10) / 100;
-      // baseline natural-scale mean/SD, so effect size means "d natural-scale SDs"
-      // here too, matching the other three distributions, rather than "d sdlog units"
-      const meanA = Math.exp(muLog + sigmaLog * sigmaLog / 2);
-      const varA = (Math.exp(sigmaLog * sigmaLog) - 1) * Math.exp(2 * muLog + sigmaLog * sigmaLog);
-      const sdA = Math.sqrt(varA);
+      // effect size here is in sdlog (log-space) units: shifts meanlog directly by
+      // effect * sigmaLog, with sigmaLog unchanged — simplest to reason about for
+      // log-normal specifically, though it means something different from the
+      // natural-scale-SD convention used for Normal/Poisson/Binomial
       return {
         paramsBaseline: { mu: muLog, sigma: sigmaLog },
-        shiftFn: effect => {
-          // sigma (log-space spread) stays fixed, so CV stays fixed too — only the
-          // target natural-scale mean moves, by effect * sdA, same convention as
-          // Normal/Poisson/Binomial
-          const targetMean = Math.max(meanA + effect * sdA, 1e-6);
-          const newMu = Math.log(targetMean) - sigmaLog * sigmaLog / 2;
-          return { mu: newMu, sigma: sigmaLog };
-        },
+        shiftFn: effect => ({ mu: muLog + effect * sigmaLog, sigma: sigmaLog }),
         genGroupFn: p => Array.from({ length: n }, () => Math.exp(p.mu + p.sigma * randNormal()))
       };
     }
